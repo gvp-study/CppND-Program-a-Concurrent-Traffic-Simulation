@@ -1,0 +1,102 @@
+name: Build Check
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+    
+    env:
+      VCPKG_MAX_CONCURRENCY: 8
+      VCPKG_ROOT: "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\vcpkg"
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Visual Studio Developer Command Prompt
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+          msbuild-architecture: x64
+          
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/vcpkg_installed
+            C:/Users/runneradmin/AppData/Local/vcpkg/archives
+            C:/Users/runneradmin/AppData/Local/vcpkg/registries
+            
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}-${{ matrix.build_type }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}-
+            vcpkg-${{ runner.os }}-
+        
+      - name: Configure CMake
+        run: |
+          cmake `
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            -DVCPKG_USE_BINARY_PACKAGES=ON `
+            -B ${{ github.workspace }}/build
+
+      - name: Build Project
+        run: |
+          cmake --build ${{ github.workspace }}/build --config ${{ matrix.build_type }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-${{ matrix.build_type }}
+          path: |
+            ${{ github.workspace }}/build/**/*.exe
+          if-no-files-found: error
+
+  gcc-build:
+    runs-on: ubuntu-latest
+    container: ubuntu:jammy
+    strategy:
+      matrix:
+        build_type: [ Debug, Release ]
+        gcc_version: [ 13 ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            software-properties-common gpg-agent wget \
+            build-essential cmake libwxgtk3.0-gtk3-dev libwxgtk3.0-gtk3-0v5 \
+            libopencv-dev python3-opencv \
+            pkg-config
+          add-apt-repository ppa:ubuntu-toolchain-r/test
+          apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            g++-${{matrix.gcc_version}} gcc-${{matrix.gcc_version}}
+
+      - name: Setup GCC
+        run: |
+          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${{matrix.gcc_version}} 100
+          update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${{matrix.gcc_version}} 100
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.build_type}}
+          cmake --build build --config ${{matrix.build_type}}
+          mkdir -p /github/workspace/artifacts
+          cp build/traffic_sim /github/workspace/artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-gcc${{matrix.gcc_version}}-${{matrix.build_type}}
+          path: /github/workspace/artifacts/traffic_sim
+          if-no-files-found: error

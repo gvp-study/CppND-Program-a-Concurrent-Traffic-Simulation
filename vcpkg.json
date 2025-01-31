@@ -1,0 +1,13 @@
+﻿{
+  "name": "cpp-traffic-sim",
+  "version": "0.0.0",
+  "builtin-baseline": "2960d7d80e8d09c84ae8abf15c12196c2ca7d39a",
+  "dependencies": [
+    {
+      "name": "opencv4",
+      "default-features": false,
+      "features": ["jpeg", "png"],
+      "version>=": "4.8.0#22"
+    }
+  ]
+}
