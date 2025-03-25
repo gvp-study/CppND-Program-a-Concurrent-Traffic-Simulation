@@ -44,7 +44,7 @@ public:
     // getters / setters
     TrafficLightPhase getCurrentPhase();
 
-    // typical behaviour methods
+    // typical behaviour method
     void waitForGreen();
     void simulate();
 
@@ -58,8 +58,6 @@ private:
     // send in conjunction with move semantics.
     MessageQueue<TrafficLightPhase> _messages;
 
-//    std::condition_variable _condition;
-//    std::mutex _mutex;
 };
 
 #endif
