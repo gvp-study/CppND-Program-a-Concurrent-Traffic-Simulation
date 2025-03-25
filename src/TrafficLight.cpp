@@ -14,9 +14,9 @@ T MessageQueue<T>::receive()
     std::unique_lock<std::mutex> lock(_mutex);
     // Wait for the condition
     _condition.wait(lock, [this]{return !_queue.empty();});
-    T message = std::move(_queue.front());
+    T msg = std::move(_queue.front());
     _queue.pop_front();
-    return message; 
+    return msg; 
 }
 
 template <typename T>
@@ -73,11 +73,10 @@ void TrafficLight::cycleThroughPhases()
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
 
-    int randCycleDuration = rand()%(2001) + 4000;
-    std::chrono::time_point<std::chrono::system_clock> lastUpdate;
+    int randCycleDuration = rand()%(2001) + 4000;   
 
     // Start the timer
-    lastUpdate = std::chrono::system_clock::now();
+    std::chrono::time_point<std::chrono::system_clock> lastUpdate = std::chrono::system_clock::now();
 
     while(true)
     {
